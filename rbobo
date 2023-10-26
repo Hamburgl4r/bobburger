@@ -1,0 +1,92 @@
+#include <Servo.h>    
+
+const int irMidLedPin = 6, irMidReceiverPin = 7;
+const int irRightLedPin = 2, irRightReceiverPin = 3;
+const int irLeftLedPin = 10, irLeftReceiverPin = 11; // Select these to match the IR LED/receiver pair that you are using
+ // Select this to match the red LED next to the IR receiver you are using
+Servo servoLeft;                        // Declare left servo
+Servo servoRight;
+const int MID_THRESHOLD = 4;
+const int SIDE_THRESHOLD = 1;
+const int MAX_DISTANCE = 5;
+void setup() // Built-in initialization block
+{
+  servoLeft.attach(13);               // Attach left signal to pin 13
+    ///servoLeft.writeMicroseconds(1300);  // 1.3ms = full speed clockwise
+  servoRight.attach(12);
+    ///servoRight.writeMicroseconds(1700);
+    //delay(3000);
+    //servoLeft.writeMicroseconds(1500);
+    //servoRight.writeMicroseconds(1500);
+  pinMode(irMidReceiverPin, INPUT); // IR receiver pin is an input
+  pinMode(irRightReceiverPin, INPUT);
+  pinMode(irLeftReceiverPin, INPUT);
+  pinMode(irMidLedPin, OUTPUT);
+  pinMode(irRightLedPin, OUTPUT);
+  pinMode(irLeftLedPin, OUTPUT);
+  pinMode(A1, OUTPUT); // IR LED pin is an output
+  pinMode(A0, OUTPUT);
+  pinMode(A2, OUTPUT); // Red LED pin is an output
+  Serial.begin(9600); // Set data rate to 9600 bps
+}
+
+void loop() 
+{
+  int Middistance = irDistance(irMidReceiverPin, irMidLedPin);
+  int leftDistance = irDistance(irLeftReceiverPin, irLeftLedPin);
+  int rightDistance = irDistance(irRightReceiverPin, irRightLedPin);
+  
+  if (Middistance > MID_THRESHOLD && leftDistance <= SIDE_THRESHOLD && rightDistance <= SIDE_THRESHOLD) 
+  {
+    servoLeft.writeMicroseconds(1420);
+    servoRight.writeMicroseconds(1580);
+    Serial.println("going mid");
+  } 
+  else if (Middistance <= SIDE_THRESHOLD && leftDistance <= SIDE_THRESHOLD && rightDistance > SIDE_THRESHOLD) 
+  {
+    servoLeft.writeMicroseconds(1475);
+    servoRight.writeMicroseconds(1475);
+    Serial.println("Going left");
+  } 
+  else if (Middistance <= SIDE_THRESHOLD && rightDistance <= SIDE_THRESHOLD && leftDistance > SIDE_THRESHOLD) 
+  {
+    servoLeft.writeMicroseconds(1525);
+    servoRight.writeMicroseconds(1525);
+    Serial.println("Going right");
+  } 
+  else if (Middistance == MAX_DISTANCE && leftDistance == MAX_DISTANCE && rightDistance == MAX_DISTANCE) 
+  {
+    servoLeft.writeMicroseconds(1525);
+    servoRight.writeMicroseconds(1525);
+  } 
+  else if (Middistance > SIDE_THRESHOLD && leftDistance > SIDE_THRESHOLD && rightDistance > SIDE_THRESHOLD) 
+  {
+    servoLeft.writeMicroseconds(1525);
+    servoRight.writeMicroseconds(1525);
+    delay(2000);
+  }
+  
+  delay(500); // Reduced the delay for quicker decisions
+}
+
+// IR Object Detection Function
+int irDetect(long frequency, int irReceiverPin, int irLEDPin)
+{
+  tone(irLEDPin, frequency); // Turn on the IR LED square wave
+  delay(1); // Wait 1 ms
+  noTone(irLEDPin); // Turn off the IR LED
+  int ir = digitalRead(irReceiverPin); // IR receiver -> ir variable
+  delay(1); // Down time before recheck
+  return ir; // Return 0 detect, 1 no detect
+}
+
+// IR distance measurement function
+int irDistance(int irReceiverPin,int irLEDPin)
+{
+  int distance = 0;
+  for (long f = 38000; f <= 42000; f += 1000)
+  {
+    distance += irDetect(f, irReceiverPin, irLEDPin);
+  }
+  return distance;
+}
